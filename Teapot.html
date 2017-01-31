@@ -1,0 +1,101 @@
+<!DOCTYPE HTML> 
+<html lang="en"> 
+<head>
+	<link type="text/css" rel="stylesheet" href="stylesheet.css"/>
+	<title>Teapot.html </title>
+	<meta charset="utf-8"> 
+</head>
+
+    
+<script id="shader-vs" type="x-shader/x-vertex">
+   // vertex, normal, position
+   attribute vec4 aVertexColor;
+   attribute vec3 aVertexNormal;
+   attribute vec3 aVertexPosition;
+   
+   // Matrix
+   uniform vec3 uLightPosition;
+   uniform vec3 uAmbientLightColor;
+   uniform vec3 uDiffuseLightColor;
+   uniform vec3 uSpecularLightColor;
+   uniform mat4 uMVMatrix;
+   uniform mat4 uPMatrix;
+   uniform mat3 uNMatrix;
+   uniform mat4 uRotateMat;
+   
+   // vertex information for frag shader
+   varying vec4 color;
+   varying vec3 vertex_position;
+   varying vec3 vertex_normal;
+   // shininess
+   const float shininess = 32.0;
+   void main(void) {
+	   // Get the vertex position in eye coordinates
+	   vec4 vertexPositionEye4 = uMVMatrix * vec4(aVertexPosition, 1.0);
+	   vec3 vertexPositionEye3 = vertexPositionEye4.xyz / vertexPositionEye4.w;
+	   // Calculate vector l to the light source
+	   vec3 light_source_vector = normalize(uLightPosition - vertexPositionEye3);
+	   // Transform normal n to eye coordinates
+	   vec3 eye_normal = normalize(uNMatrix * aVertexNormal);
+	   // Calculate n dot l for diffuse lighting
+	   float diffuseLightWeightning = max(dot(eye_normal, light_source_vector), 0.0);								
+	   // Calculate the r(reflection vector) that is needed for specular light
+	   vec3 Reflector_vector = normalize(reflect(-light_source_vector, eye_normal));
+	   vec3 viewVectorEye = -normalize(vertexPositionEye3);
+	   float rdotv = max(dot(Reflector_vector, viewVectorEye), 0.0);
+	   float specularLightWeightning = pow(rdotv, shininess);
+	   // Sum up reflection components, add the base colors, and send to the fragment shader
+	   color = vec4((uAmbientLightColor) + ((uDiffuseLightColor) * diffuseLightWeightning) + ((uSpecularLightColor) * specularLightWeightning), 1.0);
+	   gl_Position = uPMatrix*uMVMatrix*vec4(aVertexPosition, 1.0);
+	   vertex_position = aVertexPosition;
+	   vec4 temp = uRotateMat * vec4(aVertexNormal, 1.0);
+	   vertex_normal = vec3(temp[0], temp[1], temp[2]);
+    }
+</script>
+  
+<script id="shader-fs" type="x-shader/x-fragment">
+	precision mediump float;
+
+	// Pass in from vertex shader
+	varying vec3 vertex_position;
+	varying vec3 vertex_normal;
+	varying vec4 color;
+
+	// The texture
+	uniform samplerCube uSampler;
+	uniform vec3 viewDir;
+
+	// set gl_FragColor
+	uniform float uIsSkybox;
+
+	void main() {
+		// texture map the skybox
+		if (uIsSkybox > 0.5)
+			gl_FragColor = textureCube(uSampler, normalize(vertex_position));
+		// environment map the teapot
+		else{
+			vec3 reflect = 2.0*(dot(vertex_normal, viewDir))*vertex_normal - viewDir;
+			gl_FragColor = textureCube(uSampler, normalize(-reflect)) + color;
+		}
+	}
+</script>
+
+<script src="gl-matrix-min.js"></script>  
+<script src="MP3.js"></script> 
+<script src="webgl-utils.js"></script> 
+<body onload="startup();">
+	<div class = "all">
+	<h1>Hi! Play with the Teapot Under the Golden Bridge!</h1>
+	<h2 >Controls</h2>
+	<ol>
+		<li>rotate world: W/S, F/G</li>
+		<li>rotate teapot(around Y axis): A/D.</li>
+		<li>rotate teapot(around Z axis): right/left arrow key.</li>
+		<li>rotate teapot(around X axis): up/down arrow key</li>
+	</ol>
+	</div>
+	<div align="center" class="canvas-container" >
+		<canvas id="myGLCanvas" width="1000" height="1000"></canvas>
+	</div>
+</body>
+</html>

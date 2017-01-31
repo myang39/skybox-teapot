@@ -1,0 +1,22 @@
+.all{
+	font-family: Fantasy;
+	text-align:center;
+}
+.all h2 {
+	font-size: 3em;
+}
+.all h1{
+	font-size: 4em;
+}
+.all ol{
+	font-size: 2em;
+}
+
+#canvas-container {
+   width: 100%;
+   text-align:center;
+}
+
+canvas {
+   display: inline;
+}
